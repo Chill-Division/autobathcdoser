@@ -1,0 +1,537 @@
+# These substitutions allow the end user to override certain values
+substitutions:
+  name: "autobatchdoser"
+  friendly_name: "AutoBatchDoser"
+
+esphome:
+  name: "${name}"
+  # Friendly names are used where appropriate in Home Assistant
+  friendly_name: "${friendly_name}"
+  # Automatically add the mac address to the name
+  # so you can use a single firmware for all devices
+  name_add_mac_suffix: true
+
+  # This will allow for (future) project identification,
+  # configuration and updates.
+  project:
+    name: chill-division.autobatchdoser
+    version: "2.0"
+
+  # This automation runs once when the ESP boots up
+  # It sets the initial state of the direction text sensors
+  # based on the initial state of the direction switches.
+  # Higher priority ensures it runs early.
+  on_boot:
+    priority: 600  # Default priority is 0. Higher runs earlier.
+    then:
+      - lambda: |-
+          // Motor 1
+          if (id(motor_1_direction).state) {
+            id(motor_1_direction_text).publish_state("Forward");
+          } else {
+            id(motor_1_direction_text).publish_state("Reverse");
+          }
+          // Motor 2
+          if (id(motor_2_direction).state) {
+            id(motor_2_direction_text).publish_state("Forward");
+          } else {
+            id(motor_2_direction_text).publish_state("Reverse");
+          }
+          // Motor 3
+          if (id(motor_3_direction).state) {
+            id(motor_3_direction_text).publish_state("Forward");
+          } else {
+            id(motor_3_direction_text).publish_state("Reverse");
+          }
+          // Motor 4
+          if (id(motor_4_direction).state) {
+            id(motor_4_direction_text).publish_state("Forward");
+          } else {
+            id(motor_4_direction_text).publish_state("Reverse");
+          }
+          // Motor 5
+          if (id(motor_5_direction).state) {
+            id(motor_5_direction_text).publish_state("Forward");
+          } else {
+            id(motor_5_direction_text).publish_state("Reverse");
+          }
+          // Motor 6
+          if (id(motor_6_direction).state) {
+            id(motor_6_direction_text).publish_state("Forward");
+          } else {
+            id(motor_6_direction_text).publish_state("Reverse");
+          }
+      # The doser only announces its firmware version when it powers up, which
+      # is usually before we're listening, so ask for it once we're running.
+      - delay: 5s
+      - uart.write:
+          id: uart_bus
+          data: "VERSION\n"
+
+
+esp32:
+  # Using the generic P4 board target
+  board: esp32-p4
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_SPIRAM: y
+      CONFIG_SPIRAM_MODE_OCT: y
+      CONFIG_SPIRAM_SPEED_80M: y
+  # Matches the M5Stack hardware spec for primary CPU
+  cpu_frequency: 360MHz
+  flash_size: 16MB
+
+# To be able to get logs from the device via serial and api.
+logger:
+
+# API is a requirement of the dashboard import.
+api:
+
+# OTA is required for Over-the-Air updating
+ota:
+  platform: esphome
+
+# This should point to the public location of this yaml file.
+dashboard_import:
+  package_import_url: github://Chill-Division/autobatchdoser/autobatchdoser.yaml@v2
+  import_full_config: true
+
+# Network interface for Unit PoE P4
+ethernet:
+  type: IP101
+  mdc_pin: GPIO31
+  mdio_pin: GPIO52
+  phy_addr: 1
+  power_pin: GPIO51
+  clk:
+    pin: 50
+    mode: CLK_EXT_IN
+
+web_server:
+  port: 80
+
+# Setup the UART bus
+uart:
+  id: uart_bus
+  tx_pin: 53
+  rx_pin: 54 
+  baud_rate: 115200 
+
+
+# Speeds are restored after a reboot, so calibration isn't lost
+number:
+  - platform: template
+    name: "Motor 1 Speed"
+    id: motor_1_speed
+    optimistic: true
+    min_value: 400
+    max_value: 2500
+    step: 10
+    initial_value: 1700
+    restore_value: true
+  - platform: template
+    name: "Motor 2 Speed"
+    id: motor_2_speed
+    optimistic: true
+    min_value: 400
+    max_value: 2500
+    step: 10
+    initial_value: 1700
+    restore_value: true
+  - platform: template
+    name: "Motor 3 Speed"
+    id: motor_3_speed
+    optimistic: true
+    min_value: 400
+    max_value: 2500
+    step: 10
+    initial_value: 1700
+    restore_value: true
+  - platform: template
+    name: "Motor 4 Speed"
+    id: motor_4_speed
+    optimistic: true
+    min_value: 400
+    max_value: 2500
+    step: 10
+    initial_value: 1700
+    restore_value: true
+  - platform: template
+    name: "Motor 5 Speed"
+    id: motor_5_speed
+    optimistic: true
+    min_value: 400
+    max_value: 2500
+    step: 10
+    initial_value: 1700
+    restore_value: true
+  - platform: template
+    name: "Motor 6 Speed"
+    id: motor_6_speed
+    optimistic: true
+    min_value: 400
+    max_value: 2500
+    step: 10
+    initial_value: 1700
+    restore_value: true
+
+button:
+  - platform: template
+    name: "Motor 1 Calibrate"
+    on_press:
+      - uart.write:
+          id: uart_bus
+          data: !lambda |-
+            std::string s = "Motor 1 CALIBRATE " + std::to_string((int)id(motor_1_speed).state) + "\n";
+            return std::vector<unsigned char>(s.begin(), s.end());
+  - platform: template
+    name: "Motor 2 Calibrate"
+    on_press:
+      - uart.write:
+          id: uart_bus
+          data: !lambda |-
+            std::string s = "Motor 2 CALIBRATE " + std::to_string((int)id(motor_2_speed).state) + "\n";
+            return std::vector<unsigned char>(s.begin(), s.end());
+  - platform: template
+    name: "Motor 3 Calibrate"
+    on_press:
+      - uart.write:
+          id: uart_bus
+          data: !lambda |-
+            std::string s = "Motor 3 CALIBRATE " + std::to_string((int)id(motor_3_speed).state) + "\n";
+            return std::vector<unsigned char>(s.begin(), s.end());
+  - platform: template
+    name: "Motor 4 Calibrate"
+    on_press:
+      - uart.write:
+          id: uart_bus
+          data: !lambda |-
+            std::string s = "Motor 4 CALIBRATE " + std::to_string((int)id(motor_4_speed).state) + "\n";
+            return std::vector<unsigned char>(s.begin(), s.end());
+  - platform: template
+    name: "Motor 5 Calibrate"
+    on_press:
+      - uart.write:
+          id: uart_bus
+          data: !lambda |-
+            std::string s = "Motor 5 CALIBRATE " + std::to_string((int)id(motor_5_speed).state) + "\n";
+            return std::vector<unsigned char>(s.begin(), s.end());
+  - platform: template
+    name: "Motor 6 Calibrate"
+    on_press:
+      - uart.write:
+          id: uart_bus
+          data: !lambda |-
+            std::string s = "Motor 6 CALIBRATE " + std::to_string((int)id(motor_6_speed).state) + "\n";
+            return std::vector<unsigned char>(s.begin(), s.end());
+
+switch:
+  - platform: template
+    name: "Motor 1 Power"
+    optimistic: true
+    id: motor_1_power
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: !lambda |-
+            std::string s = "Motor 1 ON " + std::to_string((int)id(motor_1_speed).state) + "\n";
+            return std::vector<unsigned char>(s.begin(), s.end());
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 1 OFF\n"
+
+  - platform: template
+    name: "Motor 1 Direction"
+    id: motor_1_direction
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON # Try to restore, revert to ON (Forward) otherwise
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 1 FWD\n"
+      - lambda: |-
+          id(motor_1_direction_text).publish_state("Forward");
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 1 REV\n"
+      - lambda: |-
+          id(motor_1_direction_text).publish_state("Reverse");
+
+  - platform: template
+    name: "Motor 2 Power"
+    optimistic: true
+    id: motor_2_power
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: !lambda |-
+            std::string s = "Motor 2 ON " + std::to_string((int)id(motor_2_speed).state) + "\n";
+            return std::vector<unsigned char>(s.begin(), s.end());
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 2 OFF\n"
+
+  - platform: template
+    name: "Motor 2 Direction"
+    id: motor_2_direction
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON # Try to restore, revert to ON (Forward) otherwise
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 2 FWD\n"
+      - lambda: |-
+          id(motor_2_direction_text).publish_state("Forward");
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 2 REV\n"
+      - lambda: |-
+          id(motor_2_direction_text).publish_state("Reverse");
+
+  - platform: template
+    name: "Motor 3 Power"
+    optimistic: true
+    id: motor_3_power
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: !lambda |-
+            std::string s = "Motor 3 ON " + std::to_string((int)id(motor_3_speed).state) + "\n";
+            return std::vector<unsigned char>(s.begin(), s.end());
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 3 OFF\n"
+
+  - platform: template
+    name: "Motor 3 Direction"
+    id: motor_3_direction
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON # Try to restore, revert to ON (Forward) otherwise
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 3 FWD\n"
+      - lambda: |-
+          id(motor_3_direction_text).publish_state("Forward");
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 3 REV\n"
+      - lambda: |-
+          id(motor_3_direction_text).publish_state("Reverse");
+
+  - platform: template
+    name: "Motor 4 Power"
+    optimistic: true
+    id: motor_4_power
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: !lambda |-
+            std::string s = "Motor 4 ON " + std::to_string((int)id(motor_4_speed).state) + "\n";
+            return std::vector<unsigned char>(s.begin(), s.end());
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 4 OFF\n"
+
+  - platform: template
+    name: "Motor 4 Direction"
+    id: motor_4_direction
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON # Try to restore, revert to ON (Forward) otherwise
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 4 FWD\n"
+      - lambda: |-
+          id(motor_4_direction_text).publish_state("Forward");
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 4 REV\n"
+      - lambda: |-
+          id(motor_4_direction_text).publish_state("Reverse");
+
+  - platform: template
+    name: "Motor 5 Power"
+    optimistic: true
+    id: motor_5_power
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: !lambda |-
+            std::string s = "Motor 5 ON " + std::to_string((int)id(motor_5_speed).state) + "\n";
+            return std::vector<unsigned char>(s.begin(), s.end());
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 5 OFF\n"
+
+  - platform: template
+    name: "Motor 5 Direction"
+    id: motor_5_direction
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON # Try to restore, revert to ON (Forward) otherwise
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 5 FWD\n"
+      - lambda: |-
+          id(motor_5_direction_text).publish_state("Forward");
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 5 REV\n"
+      - lambda: |-
+          id(motor_5_direction_text).publish_state("Reverse");
+
+  - platform: template
+    name: "Motor 6 Power"
+    optimistic: true
+    id: motor_6_power
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: !lambda |-
+            std::string s = "Motor 6 ON " + std::to_string((int)id(motor_6_speed).state) + "\n";
+            return std::vector<unsigned char>(s.begin(), s.end());
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 6 OFF\n"
+
+  - platform: template
+    name: "Motor 6 Direction"
+    id: motor_6_direction
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON # Try to restore, revert to ON (Forward) otherwise
+    turn_on_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 6 FWD\n"
+      - lambda: |-
+          id(motor_6_direction_text).publish_state("Forward");
+    turn_off_action:
+      - uart.write:
+          id: uart_bus
+          data: "Motor 6 REV\n"
+      - lambda: |-
+          id(motor_6_direction_text).publish_state("Reverse");
+
+# Add text sensors
+text_sensor:
+  - platform: template
+    name: "Motor 1 Direction"
+    id: motor_1_direction_text
+    lambda: |-
+      if(id(motor_1_direction).state){
+        return {"Forward"};
+      }else{
+        return {"Reverse"};
+      }
+    update_interval: 60s  # Only update every minute to avoid constant updates
+
+  - platform: template
+    name: "Motor 2 Direction"
+    id: motor_2_direction_text
+    lambda: |-
+      if(id(motor_2_direction).state){
+        return {"Forward"};
+      }else{
+        return {"Reverse"};
+      }
+    update_interval: 60s  # Only update every minute to avoid constant updates
+
+  - platform: template
+    name: "Motor 3 Direction"
+    id: motor_3_direction_text
+    lambda: |-
+      if(id(motor_3_direction).state){
+        return {"Forward"};
+      }else{
+        return {"Reverse"};
+      }
+    update_interval: 60s  # Only update every minute to avoid constant updates
+
+  - platform: template
+    name: "Motor 4 Direction"
+    id: motor_4_direction_text
+    lambda: |-
+      if(id(motor_4_direction).state){
+        return {"Forward"};
+      }else{
+        return {"Reverse"};
+      }
+    update_interval: 60s  # Only update every minute to avoid constant updates
+
+  - platform: template
+    name: "Motor 5 Direction"
+    id: motor_5_direction_text
+    lambda: |-
+      if(id(motor_5_direction).state){
+        return {"Forward"};
+      }else{
+        return {"Reverse"};
+      }
+    update_interval: 60s  # Only update every minute to avoid constant updates
+
+  - platform: template
+    name: "Motor 6 Direction"
+    id: motor_6_direction_text
+    lambda: |-
+      if(id(motor_6_direction).state){
+        return {"Forward"};
+      }else{
+        return {"Reverse"};
+      }
+    update_interval: 60s  # Only update every minute to avoid constant updates
+
+  - platform: template
+    name: "Firmware Version"
+    id: fw_version_sensor
+    update_interval: 1s
+    lambda: |-
+      static std::string buffer;
+      while (id(uart_bus).available()) {
+        uint8_t byte;
+        id(uart_bus).read_byte(&byte);
+        char c = static_cast<char>(byte);
+
+        if (c == '\n' || c == '\r') {
+          if (buffer.rfind("FW:", 0) == 0) {
+            std::string version = buffer.substr(3);
+            buffer.clear();
+            return version;
+          } else if (buffer.rfind("Calibration for Motor", 0) == 0) {
+            id(calibration_status).publish_state(buffer);
+          }
+          buffer.clear();
+        } else {
+          buffer += c;
+        }
+      }
+      return {};
+
+  - platform: template
+    name: "Calibration Status"
+    id: calibration_status
+
+# Keep asking for the doser's firmware version until it answers. Doser firmware
+# older than 5.1.5 ignores this, and only reports its version when it powers up.
+interval:
+  - interval: 60s
+    then:
+      - if:
+          condition:
+            lambda: 'return !id(fw_version_sensor).has_state();'
+          then:
+            - uart.write:
+                id: uart_bus
+                data: "VERSION\n"
